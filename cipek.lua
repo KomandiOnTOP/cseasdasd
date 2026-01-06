@@ -14,7 +14,7 @@ local remoteFunction = ReplicatedStorage.Remotes.OpenCase
 local config = {
     autoOpenEnabled = false,
     levelCasesEnabled = false, -- Master toggle for all level cases
-    selectedAutoOpen = "Free", -- "Free", "Group", "VIP", or "MIL-SPEC"
+    selectedAutoOpen = "Free", -- "Free", "Group", "VIP", or "MILSPEC"
     autoOpenAmount = 5, -- Back to 5 for normal cases
     normalCaseCooldown = 0.5, -- 1 second between normal case batches
     levelCases = {},
@@ -40,7 +40,7 @@ local stats = {
     Free = {opened = 0, errors = 0},
     Group = {opened = 0, errors = 0},
     VIP = {opened = 0, errors = 0},
-    ["MIL-SPEC"] = {opened = 0, errors = 0}
+    ["MILSPEC"] = {opened = 0, errors = 0}
 }
 
 for level, _ in pairs(config.levelCases) do
@@ -325,8 +325,8 @@ local function createGUI()
         end
     end)
     
-    -- Case Type Selection (now includes MIL-SPEC)
-    local caseTypes = {"Free", "Group", "VIP", "MIL-SPEC"}
+    -- Case Type Selection (now includes MILSPEC)
+    local caseTypes = {"Free", "Group", "VIP", "MILSPEC"}
     for i, caseType in ipairs(caseTypes) do
         local row = math.floor((i - 1) / 2)
         local col = (i - 1) % 2
