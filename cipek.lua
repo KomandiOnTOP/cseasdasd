@@ -16,7 +16,7 @@ local config = {
     levelCasesEnabled = false, -- Master toggle for all level cases
     selectedAutoOpen = "Free", -- "Free", "Group", "VIP", or "MILSPEC"
     autoOpenAmount = 5, -- Back to 5 for normal cases
-    normalCaseCooldown = 0.5, -- 1 second between normal case batches
+    normalCaseCooldown = 1, -- 1 second between normal case batches
     levelCases = {},
     levelCaseDelay = 6 -- 6 seconds between each level case opening
 }
@@ -40,7 +40,7 @@ local stats = {
     Free = {opened = 0, errors = 0},
     Group = {opened = 0, errors = 0},
     VIP = {opened = 0, errors = 0},
-    ["MILSPEC"] = {opened = 0, errors = 0}
+    MILSPEC = {opened = 0, errors = 0}
 }
 
 for level, _ in pairs(config.levelCases) do
