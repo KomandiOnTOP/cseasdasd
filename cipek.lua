@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 
 -- Player
 local player = Players.LocalPlayer
@@ -13,15 +14,16 @@ local remoteFunction = ReplicatedStorage.Remotes.OpenCase
 -- Configuration
 local config = {
     autoOpenEnabled = false,
-    levelCasesEnabled = false, -- Master toggle for all level cases
-    selectedAutoOpen = "Free", -- "Free", "Group", "VIP", or "Military"
-    autoOpenAmount = 5, -- Back to 5 for normal cases
-    normalCaseCooldown = 1, -- 1 second between normal case batches
+    levelCasesEnabled = false,
+    selectedAutoOpen = "Free",
+    autoOpenAmount = 5,
+    normalCaseCooldown = 1,
     levelCases = {},
-    levelCaseDelay = 6 -- 6 seconds between each level case opening
+    levelCaseDelay = 6,
+    currentTab = "MAIN" -- Current active tab
 }
 
--- Initialize level cases (10 to 120, every 10 levels)
+-- Initialize level cases
 local levelIndex = 0
 for i = 10, 120, 10 do
     config.levelCases["LEVEL" .. i] = {
@@ -29,8 +31,8 @@ for i = 10, 120, 10 do
         lastOpened = 0,
         firstOpen = false,
         level = i,
-        initialDelay = levelIndex * 6, -- 0s, 6s, 12s, 18s, 24s, etc.
-        regularCooldown = 120 -- 120 seconds (2 minutes) for all level cases
+        initialDelay = levelIndex * 6,
+        regularCooldown = 120
     }
     levelIndex = levelIndex + 1
 end
@@ -82,7 +84,6 @@ end
 
 -- Function to check and open ALL ready level cases
 local function checkAndOpenAllLevelCases()
-    -- Check if level cases are globally enabled
     if not config.levelCasesEnabled then
         return false
     end
@@ -90,7 +91,6 @@ local function checkAndOpenAllLevelCases()
     local currentTime = tick()
     local timeSinceStart = currentTime - scriptStartTime
     
-    -- Sort level cases by level number
     local sortedCases = {}
     for caseName, caseData in pairs(config.levelCases) do
         if caseData.enabled then
@@ -102,18 +102,15 @@ local function checkAndOpenAllLevelCases()
         return a.data.level < b.data.level
     end)
     
-    -- Collect all level cases that are ready to open
     local casesToOpen = {}
     for _, caseInfo in ipairs(sortedCases) do
         local caseName = caseInfo.name
         local caseData = caseInfo.data
         
-        -- First opening: check if initial delay has passed
         if not caseData.firstOpen then
             if timeSinceStart >= caseData.initialDelay then
                 table.insert(casesToOpen, {name = caseName, data = caseData, isFirst = true})
             end
-        -- Subsequent openings: check regular cooldown (2 minutes)
         else
             if currentTime - caseData.lastOpened >= caseData.regularCooldown then
                 table.insert(casesToOpen, {name = caseName, data = caseData, isFirst = false})
@@ -121,10 +118,9 @@ local function checkAndOpenAllLevelCases()
         end
     end
     
-    -- If there are cases to open, open them all with delays
     if #casesToOpen > 0 then
         print("\n[PAUSE] Pausing normal cases for 6s before opening level cases...")
-        task.wait(6) -- 6s pause BEFORE opening level cases
+        task.wait(6)
         
         print("[LEVEL CASES] Opening " .. #casesToOpen .. " level case(s)...")
         
@@ -139,18 +135,17 @@ local function checkAndOpenAllLevelCases()
                 print("[LEVEL CASE] Opening " .. caseName .. " (cooldown: " .. caseData.regularCooldown .. "s / 2 minutes)...")
             end
             
-            openCase(caseName, 1) -- Level cases always open 1 at a time
+            openCase(caseName, 1)
             caseData.lastOpened = currentTime
             caseData.firstOpen = true
             
-            -- Wait 6 seconds between each level case (except after the last one)
             if i < #casesToOpen then
                 task.wait(6)
             end
         end
         
         print("[PAUSE] Waiting 6s after opening level cases before resuming normal cases...")
-        task.wait(6) -- 6s pause AFTER opening all level cases
+        task.wait(6)
         
         return true
     end
@@ -161,19 +156,17 @@ end
 -- Main loop function
 local function mainLoop()
     loopRunning = true
-    scriptStartTime = tick() -- Reset start time when loop starts
+    scriptStartTime = tick()
     print("Auto-opener started!")
     print("Script start time: " .. scriptStartTime)
     print("Opening " .. config.autoOpenAmount .. " normal cases at a time with " .. config.normalCaseCooldown .. "s cooldown")
     
     while config.autoOpenEnabled and loopRunning do
-        -- Check if any level cases need to be opened
         local levelCasesOpened = checkAndOpenAllLevelCases()
         
         if not levelCasesOpened then
-            -- No level cases to open, proceed with normal auto-open (5 at a time)
             openCase(config.selectedAutoOpen, config.autoOpenAmount)
-            task.wait(config.normalCaseCooldown) -- Wait cooldown between normal cases
+            task.wait(config.normalCaseCooldown)
         end
     end
     
@@ -181,9 +174,8 @@ local function mainLoop()
     print("Auto-opener stopped!")
 end
 
--- Create GUI
+-- Create GUI with Liquid Glass Effect
 local function createGUI()
-    -- Check if GUI already exists
     if CoreGui:FindFirstChild("CaseOpenerGUI") or playerGui:FindFirstChild("CaseOpenerGUI") then
         print("GUI already exists!")
         return
@@ -194,297 +186,704 @@ local function createGUI()
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- Main Frame
+    -- Main Frame (Glass Effect)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 450, 0, 550)
-    mainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    mainFrame.Size = UDim2.new(0, 600, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    mainFrame.BackgroundTransparency = 0.3
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
     mainFrame.Draggable = true
     mainFrame.Parent = screenGui
     
-    -- Corner
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = mainFrame
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 20)
+    mainCorner.Parent = mainFrame
     
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    title.BorderSizePixel = 0
-    title.Text = "Case Auto-Opener"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 18
-    title.Parent = mainFrame
+    -- Glass Blur Effect
+    local blurEffect = Instance.new("ImageLabel")
+    blurEffect.Name = "GlassBlur"
+    blurEffect.Size = UDim2.new(1, 0, 1, 0)
+    blurEffect.BackgroundTransparency = 1
+    blurEffect.Image = "rbxassetid://8992230677"
+    blurEffect.ImageColor3 = Color3.fromRGB(20, 20, 35)
+    blurEffect.ImageTransparency = 0.7
+    blurEffect.ScaleType = Enum.ScaleType.Slice
+    blurEffect.SliceCenter = Rect.new(99, 99, 99, 99)
+    blurEffect.Parent = mainFrame
     
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = title
+    local blurCorner = Instance.new("UICorner")
+    blurCorner.CornerRadius = UDim.new(0, 20)
+    blurCorner.Parent = blurEffect
     
-    -- Close Button
+    -- Neon Glow Border
+    local glowBorder = Instance.new("ImageLabel")
+    glowBorder.Name = "GlowBorder"
+    glowBorder.Size = UDim2.new(1, 40, 1, 40)
+    glowBorder.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glowBorder.AnchorPoint = Vector2.new(0.5, 0.5)
+    glowBorder.BackgroundTransparency = 1
+    glowBorder.Image = "rbxassetid://5028857084"
+    glowBorder.ImageColor3 = Color3.fromRGB(0, 255, 200)
+    glowBorder.ImageTransparency = 0.5
+    glowBorder.ScaleType = Enum.ScaleType.Slice
+    glowBorder.SliceCenter = Rect.new(24, 24, 276, 276)
+    glowBorder.ZIndex = 0
+    glowBorder.Parent = mainFrame
+    
+    -- Animate glow
+    local glowTween = TweenService:Create(glowBorder, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        ImageColor3 = Color3.fromRGB(100, 200, 255)
+    })
+    glowTween:Play()
+    
+    -- Close Button (Glass style with X symbol)
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseButton"
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Size = UDim2.new(0, 40, 0, 40)
+    closeBtn.Position = UDim2.new(1, -50, 0, 10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+    closeBtn.BackgroundTransparency = 0.3
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 16
+    closeBtn.TextSize = 20
+    closeBtn.ZIndex = 10
     closeBtn.Parent = mainFrame
     
     local closeBtnCorner = Instance.new("UICorner")
-    closeBtnCorner.CornerRadius = UDim.new(0, 6)
+    closeBtnCorner.CornerRadius = UDim.new(0, 10)
     closeBtnCorner.Parent = closeBtn
     
+    local closeBtnGlow = Instance.new("ImageLabel")
+    closeBtnGlow.Size = UDim2.new(1, 20, 1, 20)
+    closeBtnGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    closeBtnGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+    closeBtnGlow.BackgroundTransparency = 1
+    closeBtnGlow.Image = "rbxassetid://5028857084"
+    closeBtnGlow.ImageColor3 = Color3.fromRGB(255, 100, 100)
+    closeBtnGlow.ImageTransparency = 0.7
+    closeBtnGlow.ScaleType = Enum.ScaleType.Slice
+    closeBtnGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+    closeBtnGlow.ZIndex = 9
+    closeBtnGlow.Parent = closeBtn
+    
     closeBtn.MouseButton1Click:Connect(function()
+        local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1
+        })
+        closeTween:Play()
+        closeTween.Completed:Wait()
         screenGui:Destroy()
     end)
     
-    -- Scroll Frame
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollFrame"
-    scrollFrame.Size = UDim2.new(1, -20, 1, -60)
-    scrollFrame.Position = UDim2.new(0, 10, 0, 50)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = 6
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    scrollFrame.Parent = mainFrame
+    -- Tab Navigation (Right side)
+    local tabNav = Instance.new("Frame")
+    tabNav.Name = "TabNavigation"
+    tabNav.Size = UDim2.new(0, 120, 1, -20)
+    tabNav.Position = UDim2.new(1, -130, 0, 10)
+    tabNav.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    tabNav.BackgroundTransparency = 0.4
+    tabNav.BorderSizePixel = 0
+    tabNav.Parent = mainFrame
     
-    -- Layout
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 10)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = scrollFrame
+    local tabNavCorner = Instance.new("UICorner")
+    tabNavCorner.CornerRadius = UDim.new(0, 15)
+    tabNavCorner.Parent = tabNav
     
-    -- Auto-Open Section
-    local autoOpenSection = Instance.new("Frame")
-    autoOpenSection.Name = "AutoOpenSection"
-    autoOpenSection.Size = UDim2.new(1, 0, 0, 190)
-    autoOpenSection.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    autoOpenSection.BorderSizePixel = 0
-    autoOpenSection.LayoutOrder = 1
-    autoOpenSection.Parent = scrollFrame
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.Padding = UDim.new(0, 10)
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Parent = tabNav
     
-    local autoOpenCorner = Instance.new("UICorner")
-    autoOpenCorner.CornerRadius = UDim.new(0, 8)
-    autoOpenCorner.Parent = autoOpenSection
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingTop = UDim.new(0, 15)
+    tabPadding.PaddingBottom = UDim.new(0, 15)
+    tabPadding.Parent = tabNav
     
-    local autoOpenTitle = Instance.new("TextLabel")
-    autoOpenTitle.Size = UDim2.new(1, -20, 0, 30)
-    autoOpenTitle.Position = UDim2.new(0, 10, 0, 5)
-    autoOpenTitle.BackgroundTransparency = 1
-    autoOpenTitle.Text = "Auto-Open Settings"
-    autoOpenTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoOpenTitle.Font = Enum.Font.GothamBold
-    autoOpenTitle.TextSize = 16
-    autoOpenTitle.TextXAlignment = Enum.TextXAlignment.Left
-    autoOpenTitle.Parent = autoOpenSection
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -150, 1, -20)
+    contentFrame.Position = UDim2.new(0, 10, 0, 10)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
     
-    -- Auto-Open Toggle
-    local autoOpenToggle = Instance.new("TextButton")
-    autoOpenToggle.Name = "AutoOpenToggle"
-    autoOpenToggle.Size = UDim2.new(0, 80, 0, 30)
-    autoOpenToggle.Position = UDim2.new(0, 10, 0, 40)
-    autoOpenToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    autoOpenToggle.Text = "OFF"
-    autoOpenToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoOpenToggle.Font = Enum.Font.GothamBold
-    autoOpenToggle.TextSize = 14
-    autoOpenToggle.Parent = autoOpenSection
+    -- Main Tab Content
+    local mainContent = Instance.new("Frame")
+    mainContent.Name = "MainContent"
+    mainContent.Size = UDim2.new(1, 0, 1, 0)
+    mainContent.BackgroundTransparency = 1
+    mainContent.Visible = true
+    mainContent.Parent = contentFrame
     
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 6)
-    toggleCorner.Parent = autoOpenToggle
+    -- Levels Tab Content
+    local levelsContent = Instance.new("Frame")
+    levelsContent.Name = "LevelsContent"
+    levelsContent.Size = UDim2.new(1, 0, 1, 0)
+    levelsContent.BackgroundTransparency = 1
+    levelsContent.Visible = false
+    levelsContent.Parent = contentFrame
     
-    autoOpenToggle.MouseButton1Click:Connect(function()
-        config.autoOpenEnabled = not config.autoOpenEnabled
+    -- Function to create tab button
+    local function createTabButton(tabName, icon, order, contentToShow)
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Name = tabName .. "Tab"
+        tabBtn.Size = UDim2.new(0, 90, 0, 70)
+        tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+        tabBtn.BackgroundTransparency = 0.5
+        tabBtn.Text = ""
+        tabBtn.LayoutOrder = order
+        tabBtn.Parent = tabNav
         
-        if config.autoOpenEnabled then
-            autoOpenToggle.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-            autoOpenToggle.Text = "ON"
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 12)
+        btnCorner.Parent = tabBtn
+        
+        -- Icon
+        local iconLabel = Instance.new("TextLabel")
+        iconLabel.Size = UDim2.new(1, 0, 0, 30)
+        iconLabel.Position = UDim2.new(0, 0, 0, 8)
+        iconLabel.BackgroundTransparency = 1
+        iconLabel.Text = icon
+        iconLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
+        iconLabel.Font = Enum.Font.GothamBold
+        iconLabel.TextSize = 24
+        iconLabel.Parent = tabBtn
+        
+        -- Label
+        local labelText = Instance.new("TextLabel")
+        labelText.Size = UDim2.new(1, 0, 0, 20)
+        labelText.Position = UDim2.new(0, 0, 1, -28)
+        labelText.BackgroundTransparency = 1
+        labelText.Text = tabName
+        labelText.TextColor3 = Color3.fromRGB(150, 150, 200)
+        labelText.Font = Enum.Font.GothamBold
+        labelText.TextSize = 12
+        labelText.Parent = tabBtn
+        
+        -- Glow effect
+        local btnGlow = Instance.new("ImageLabel")
+        btnGlow.Name = "Glow"
+        btnGlow.Size = UDim2.new(1, 20, 1, 20)
+        btnGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+        btnGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+        btnGlow.BackgroundTransparency = 1
+        btnGlow.Image = "rbxassetid://5028857084"
+        btnGlow.ImageColor3 = Color3.fromRGB(0, 255, 200)
+        btnGlow.ImageTransparency = 1
+        btnGlow.ScaleType = Enum.ScaleType.Slice
+        btnGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+        btnGlow.ZIndex = 0
+        btnGlow.Parent = tabBtn
+        
+        -- Active indicator
+        local activeBar = Instance.new("Frame")
+        activeBar.Name = "ActiveBar"
+        activeBar.Size = UDim2.new(0, 3, 0.7, 0)
+        activeBar.Position = UDim2.new(0, -8, 0.5, 0)
+        activeBar.AnchorPoint = Vector2.new(0, 0.5)
+        activeBar.BackgroundColor3 = Color3.fromRGB(0, 255, 200)
+        activeBar.BorderSizePixel = 0
+        activeBar.Visible = false
+        activeBar.Parent = tabBtn
+        
+        local barCorner = Instance.new("UICorner")
+        barCorner.CornerRadius = UDim.new(1, 0)
+        barCorner.Parent = activeBar
+        
+        -- Set initial active state
+        if config.currentTab == tabName then
+            activeBar.Visible = true
+            iconLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+            labelText.TextColor3 = Color3.fromRGB(0, 255, 200)
+            tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            TweenService:Create(btnGlow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+        end
+        
+        tabBtn.MouseButton1Click:Connect(function()
+            -- Hide all content
+            mainContent.Visible = false
+            levelsContent.Visible = false
             
-            -- Reset firstOpen flags when starting
+            -- Show selected content
+            contentToShow.Visible = true
+            config.currentTab = tabName
+            
+            -- Update all tab buttons
+            for _, child in pairs(tabNav:GetChildren()) do
+                if child:IsA("TextButton") then
+                    local childIcon = child:FindFirstChildOfClass("TextLabel")
+                    local childLabel = child:FindFirstChild("TextLabel", true)
+                    local childGlow = child:FindFirstChild("Glow")
+                    local childBar = child:FindFirstChild("ActiveBar")
+                    
+                    if child == tabBtn then
+                        -- Active state
+                        if childBar then childBar.Visible = true end
+                        if childIcon then
+                            TweenService:Create(childIcon, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(0, 255, 200)}):Play()
+                        end
+                        if childLabel and childLabel ~= childIcon then
+                            TweenService:Create(childLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(0, 255, 200)}):Play()
+                        end
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}):Play()
+                        if childGlow then
+                            TweenService:Create(childGlow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+                        end
+                    else
+                        -- Inactive state
+                        if childBar then childBar.Visible = false end
+                        if childIcon then
+                            TweenService:Create(childIcon, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                        end
+                        if childLabel and childLabel ~= childIcon then
+                            TweenService:Create(childLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                        end
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30, 30, 50)}):Play()
+                        if childGlow then
+                            TweenService:Create(childGlow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+                        end
+                    end
+                end
+            end
+        end)
+        
+        return tabBtn
+    end
+    
+    -- Create tabs with symbols
+    createTabButton("MAIN", "◆", 1, mainContent)
+    createTabButton("LEVELS", "▲", 2, levelsContent)
+    
+    -- Function to create modern toggle switch
+    local function createToggleSwitch(parent, position, callback, initialState)
+        local toggleFrame = Instance.new("Frame")
+        toggleFrame.Size = UDim2.new(0, 60, 0, 30)
+        toggleFrame.Position = position
+        toggleFrame.BackgroundColor3 = initialState and Color3.fromRGB(0, 200, 150) or Color3.fromRGB(40, 40, 60)
+        toggleFrame.BackgroundTransparency = 0.3
+        toggleFrame.BorderSizePixel = 0
+        toggleFrame.Parent = parent
+        
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(1, 0)
+        toggleCorner.Parent = toggleFrame
+        
+        -- Glow
+        local toggleGlow = Instance.new("ImageLabel")
+        toggleGlow.Size = UDim2.new(1, 15, 1, 15)
+        toggleGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+        toggleGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+        toggleGlow.BackgroundTransparency = 1
+        toggleGlow.Image = "rbxassetid://5028857084"
+        toggleGlow.ImageColor3 = initialState and Color3.fromRGB(0, 255, 200) or Color3.fromRGB(100, 100, 150)
+        toggleGlow.ImageTransparency = initialState and 0.5 or 0.8
+        toggleGlow.ScaleType = Enum.ScaleType.Slice
+        toggleGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+        toggleGlow.ZIndex = 0
+        toggleGlow.Parent = toggleFrame
+        
+        local knob = Instance.new("Frame")
+        knob.Size = UDim2.new(0, 22, 0, 22)
+        knob.Position = initialState and UDim2.new(1, -26, 0.5, 0) or UDim2.new(0, 4, 0.5, 0)
+        knob.AnchorPoint = Vector2.new(0, 0.5)
+        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        knob.BorderSizePixel = 0
+        knob.Parent = toggleFrame
+        
+        local knobCorner = Instance.new("UICorner")
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        knobCorner.Parent = knob
+        
+        local toggleBtn = Instance.new("TextButton")
+        toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+        toggleBtn.BackgroundTransparency = 1
+        toggleBtn.Text = ""
+        toggleBtn.Parent = toggleFrame
+        
+        local isOn = initialState
+        
+        toggleBtn.MouseButton1Click:Connect(function()
+            isOn = not isOn
+            
+            local knobPos = isOn and UDim2.new(1, -26, 0.5, 0) or UDim2.new(0, 4, 0.5, 0)
+            local bgColor = isOn and Color3.fromRGB(0, 200, 150) or Color3.fromRGB(40, 40, 60)
+            local glowColor = isOn and Color3.fromRGB(0, 255, 200) or Color3.fromRGB(100, 100, 150)
+            local glowTrans = isOn and 0.5 or 0.8
+            
+            TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Position = knobPos}):Play()
+            TweenService:Create(toggleFrame, TweenInfo.new(0.2), {BackgroundColor3 = bgColor}):Play()
+            TweenService:Create(toggleGlow, TweenInfo.new(0.2), {
+                ImageColor3 = glowColor,
+                ImageTransparency = glowTrans
+            }):Play()
+            
+            if callback then
+                callback(isOn)
+            end
+        end)
+        
+        return toggleFrame
+    end
+    
+    -- MAIN TAB CONTENT
+    local mainTitle = Instance.new("TextLabel")
+    mainTitle.Size = UDim2.new(1, 0, 0, 40)
+    mainTitle.Position = UDim2.new(0, 0, 0, 10)
+    mainTitle.BackgroundTransparency = 1
+    mainTitle.Text = "AUTO OPENER"
+    mainTitle.TextColor3 = Color3.fromRGB(0, 255, 200)
+    mainTitle.Font = Enum.Font.GothamBold
+    mainTitle.TextSize = 24
+    mainTitle.TextXAlignment = Enum.TextXAlignment.Left
+    mainTitle.Parent = mainContent
+    
+    -- Auto-Open Card
+    local autoOpenCard = Instance.new("Frame")
+    autoOpenCard.Size = UDim2.new(1, 0, 0, 120)
+    autoOpenCard.Position = UDim2.new(0, 0, 0, 60)
+    autoOpenCard.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+    autoOpenCard.BackgroundTransparency = 0.4
+    autoOpenCard.BorderSizePixel = 0
+    autoOpenCard.Parent = mainContent
+    
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, 15)
+    cardCorner.Parent = autoOpenCard
+    
+    local cardGlow = Instance.new("ImageLabel")
+    cardGlow.Size = UDim2.new(1, 20, 1, 20)
+    cardGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    cardGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+    cardGlow.BackgroundTransparency = 1
+    cardGlow.Image = "rbxassetid://5028857084"
+    cardGlow.ImageColor3 = Color3.fromRGB(0, 150, 255)
+    cardGlow.ImageTransparency = 0.7
+    cardGlow.ScaleType = Enum.ScaleType.Slice
+    cardGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+    cardGlow.ZIndex = 0
+    cardGlow.Parent = autoOpenCard
+    
+    local autoOpenLabel = Instance.new("TextLabel")
+    autoOpenLabel.Size = UDim2.new(0, 200, 0, 30)
+    autoOpenLabel.Position = UDim2.new(0, 20, 0, 15)
+    autoOpenLabel.BackgroundTransparency = 1
+    autoOpenLabel.Text = "Auto-Open Status"
+    autoOpenLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    autoOpenLabel.Font = Enum.Font.GothamBold
+    autoOpenLabel.TextSize = 16
+    autoOpenLabel.TextXAlignment = Enum.TextXAlignment.Left
+    autoOpenLabel.Parent = autoOpenCard
+    
+    local autoOpenToggle = createToggleSwitch(autoOpenCard, UDim2.new(1, -80, 0, 15), function(state)
+        config.autoOpenEnabled = state
+        
+        if state then
             for _, caseData in pairs(config.levelCases) do
                 caseData.firstOpen = false
                 caseData.lastOpened = 0
             end
-            
             task.spawn(mainLoop)
         else
-            autoOpenToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            autoOpenToggle.Text = "OFF"
             loopRunning = false
         end
-    end)
+    end, false)
     
-    -- Case Type Selection (now includes Military)
-    local caseTypes = {"Free", "Group", "VIP", "Military"}
-    for i, caseType in ipairs(caseTypes) do
-        local row = math.floor((i - 1) / 2)
-        local col = (i - 1) % 2
-        
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(1, -40, 0, 20)
+    infoLabel.Position = UDim2.new(0, 20, 0, 55)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Text = "Opening 5 cases per batch • 1s cooldown"
+    infoLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 12
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextTransparency = 0.3
+    infoLabel.Parent = autoOpenCard
+    
+    -- Case Type Selection Title
+    local caseTypeTitle = Instance.new("TextLabel")
+    caseTypeTitle.Size = UDim2.new(1, -40, 0, 20)
+    caseTypeTitle.Position = UDim2.new(0, 20, 0, 80)
+    caseTypeTitle.BackgroundTransparency = 1
+    caseTypeTitle.Text = "Select Case Type:"
+    caseTypeTitle.TextColor3 = Color3.fromRGB(200, 200, 255)
+    caseTypeTitle.Font = Enum.Font.GothamBold
+    caseTypeTitle.TextSize = 13
+    caseTypeTitle.TextXAlignment = Enum.TextXAlignment.Left
+    caseTypeTitle.Parent = autoOpenCard
+    
+    -- Case Types Grid
+    local caseTypesGrid = Instance.new("Frame")
+    caseTypesGrid.Size = UDim2.new(1, 0, 0, 200)
+    caseTypesGrid.Position = UDim2.new(0, 0, 0, 195)
+    caseTypesGrid.BackgroundTransparency = 1
+    caseTypesGrid.Parent = mainContent
+    
+    local gridLayout = Instance.new("UIGridLayout")
+    gridLayout.CellSize = UDim2.new(0, 110, 0, 90)
+    gridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+    gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    gridLayout.Parent = caseTypesGrid
+    
+    local caseTypes = {
+        {name = "Free", icon = "◇", color = Color3.fromRGB(100, 200, 255)},
+        {name = "Group", icon = "◈", color = Color3.fromRGB(150, 100, 255)},
+        {name = "VIP", icon = "◆", color = Color3.fromRGB(255, 200, 0)},
+        {name = "Military", icon = "◘", color = Color3.fromRGB(255, 100, 100)}
+    }
+    
+    for i, caseData in ipairs(caseTypes) do
         local caseBtn = Instance.new("TextButton")
-        caseBtn.Size = UDim2.new(0, 100, 0, 30)
-        caseBtn.Position = UDim2.new(0, 10 + col * 110, 0, 80 + row * 40)
-        caseBtn.BackgroundColor3 = config.selectedAutoOpen == caseType and Color3.fromRGB(70, 130, 200) or Color3.fromRGB(60, 60, 65)
-        caseBtn.Text = caseType
-        caseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        caseBtn.Font = Enum.Font.Gotham
-        caseBtn.TextSize = 14
-        caseBtn.Parent = autoOpenSection
+        caseBtn.Name = caseData.name
+        caseBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+        caseBtn.BackgroundTransparency = 0.4
+        caseBtn.Text = ""
+        caseBtn.LayoutOrder = i
+        caseBtn.Parent = caseTypesGrid
         
         local caseBtnCorner = Instance.new("UICorner")
-        caseBtnCorner.CornerRadius = UDim.new(0, 6)
+        caseBtnCorner.CornerRadius = UDim.new(0, 12)
         caseBtnCorner.Parent = caseBtn
         
+        local caseBtnGlow = Instance.new("ImageLabel")
+        caseBtnGlow.Name = "Glow"
+        caseBtnGlow.Size = UDim2.new(1, 20, 1, 20)
+        caseBtnGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+        caseBtnGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+        caseBtnGlow.BackgroundTransparency = 1
+        caseBtnGlow.Image = "rbxassetid://5028857084"
+        caseBtnGlow.ImageColor3 = caseData.color
+        caseBtnGlow.ImageTransparency = 1
+        caseBtnGlow.ScaleType = Enum.ScaleType.Slice
+        caseBtnGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+        caseBtnGlow.ZIndex = 0
+        caseBtnGlow.Parent = caseBtn
+        
+        local caseIcon = Instance.new("TextLabel")
+        caseIcon.Size = UDim2.new(1, 0, 0, 35)
+        caseIcon.Position = UDim2.new(0, 0, 0, 10)
+        caseIcon.BackgroundTransparency = 1
+        caseIcon.Text = caseData.icon
+        caseIcon.TextColor3 = Color3.fromRGB(150, 150, 200)
+        caseIcon.Font = Enum.Font.GothamBold
+        caseIcon.TextSize = 32
+        caseIcon.Parent = caseBtn
+        
+        local caseName = Instance.new("TextLabel")
+        caseName.Size = UDim2.new(1, 0, 0, 25)
+        caseName.Position = UDim2.new(0, 0, 1, -35)
+        caseName.BackgroundTransparency = 1
+        caseName.Text = caseData.name
+        caseName.TextColor3 = Color3.fromRGB(150, 150, 200)
+        caseName.Font = Enum.Font.GothamBold
+        caseName.TextSize = 14
+        caseName.Parent = caseBtn
+        
+        -- Set initial state
+        if config.selectedAutoOpen == caseData.name then
+            caseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
+            caseIcon.TextColor3 = caseData.color
+            caseName.TextColor3 = caseData.color
+            caseBtnGlow.ImageTransparency = 0.5
+        end
+        
         caseBtn.MouseButton1Click:Connect(function()
-            config.selectedAutoOpen = caseType
+            config.selectedAutoOpen = caseData.name
             
-            -- Update all buttons
-            for _, child in pairs(autoOpenSection:GetChildren()) do
-                if child:IsA("TextButton") and child.Name ~= "AutoOpenToggle" then
-                    local childText = child.Text
-                    if childText == config.selectedAutoOpen then
-                        child.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+            -- Update all case buttons
+            for _, child in pairs(caseTypesGrid:GetChildren()) do
+                if child:IsA("TextButton") then
+                    local childIcon = child:FindFirstChildOfClass("TextLabel")
+                    local childName = child:FindFirstChild("TextLabel", true)
+                    local childGlow = child:FindFirstChild("Glow")
+                    
+                    if child.Name == caseData.name then
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 65)}):Play()
+                        if childIcon then
+                            TweenService:Create(childIcon, TweenInfo.new(0.3), {TextColor3 = caseData.color}):Play()
+                        end
+                        if childName and childName ~= childIcon then
+                            TweenService:Create(childName, TweenInfo.new(0.3), {TextColor3 = caseData.color}):Play()
+                        end
+                        if childGlow then
+                            TweenService:Create(childGlow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+                        end
                     else
-                        child.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30, 30, 50)}):Play()
+                        if childIcon then
+                            TweenService:Create(childIcon, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                        end
+                        if childName and childName ~= childIcon then
+                            TweenService:Create(childName, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                        end
+                        if childGlow then
+                            TweenService:Create(childGlow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+                        end
                     end
                 end
             end
         end)
     end
     
-    -- Amount info
-    local amountLabel = Instance.new("TextLabel")
-    amountLabel.Size = UDim2.new(1, -20, 0, 20)
-    amountLabel.Position = UDim2.new(0, 10, 0, 160)
-    amountLabel.BackgroundTransparency = 1
-    amountLabel.Text = "Opening 5 cases per batch (1s cooldown)"
-    amountLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    amountLabel.Font = Enum.Font.Gotham
-    amountLabel.TextSize = 12
-    amountLabel.TextXAlignment = Enum.TextXAlignment.Left
-    amountLabel.Parent = autoOpenSection
+    -- LEVELS TAB CONTENT
+    local levelsTitle = Instance.new("TextLabel")
+    levelsTitle.Size = UDim2.new(1, 0, 0, 40)
+    levelsTitle.Position = UDim2.new(0, 0, 0, 10)
+    levelsTitle.BackgroundTransparency = 1
+    levelsTitle.Text = "LEVEL CASES"
+    levelsTitle.TextColor3 = Color3.fromRGB(0, 255, 200)
+    levelsTitle.Font = Enum.Font.GothamBold
+    levelsTitle.TextSize = 24
+    levelsTitle.TextXAlignment = Enum.TextXAlignment.Left
+    levelsTitle.Parent = levelsContent
     
-    -- Level Cases Section
-    local levelSection = Instance.new("Frame")
-    levelSection.Name = "LevelSection"
-    levelSection.Size = UDim2.new(1, 0, 0, 0)
-    levelSection.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    levelSection.BorderSizePixel = 0
-    levelSection.LayoutOrder = 2
-    levelSection.AutomaticSize = Enum.AutomaticSize.Y
-    levelSection.Parent = scrollFrame
+    -- Level Master Toggle Card
+    local levelMasterCard = Instance.new("Frame")
+    levelMasterCard.Size = UDim2.new(1, 0, 0, 90)
+    levelMasterCard.Position = UDim2.new(0, 0, 0, 60)
+    levelMasterCard.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+    levelMasterCard.BackgroundTransparency = 0.4
+    levelMasterCard.BorderSizePixel = 0
+    levelMasterCard.Parent = levelsContent
     
-    local levelCorner = Instance.new("UICorner")
-    levelCorner.CornerRadius = UDim.new(0, 8)
-    levelCorner.Parent = levelSection
+    local levelCardCorner = Instance.new("UICorner")
+    levelCardCorner.CornerRadius = UDim.new(0, 15)
+    levelCardCorner.Parent = levelMasterCard
     
-    -- Level Cases Header Frame
-    local levelHeader = Instance.new("Frame")
-    levelHeader.Name = "LevelHeader"
-    levelHeader.Size = UDim2.new(1, -20, 0, 40)
-    levelHeader.Position = UDim2.new(0, 10, 0, 5)
-    levelHeader.BackgroundTransparency = 1
-    levelHeader.Parent = levelSection
+    local levelCardGlow = Instance.new("ImageLabel")
+    levelCardGlow.Size = UDim2.new(1, 20, 1, 20)
+    levelCardGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    levelCardGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+    levelCardGlow.BackgroundTransparency = 1
+    levelCardGlow.Image = "rbxassetid://5028857084"
+    levelCardGlow.ImageColor3 = Color3.fromRGB(255, 150, 0)
+    levelCardGlow.ImageTransparency = 0.7
+    levelCardGlow.ScaleType = Enum.ScaleType.Slice
+    levelCardGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+    levelCardGlow.ZIndex = 0
+    levelCardGlow.Parent = levelMasterCard
     
-    local levelTitle = Instance.new("TextLabel")
-    levelTitle.Size = UDim2.new(0, 250, 1, 0)
-    levelTitle.Position = UDim2.new(0, 0, 0, 0)
-    levelTitle.BackgroundTransparency = 1
-    levelTitle.Text = "Level Cases (2min cd, 6s delay)"
-    levelTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    levelTitle.Font = Enum.Font.GothamBold
-    levelTitle.TextSize = 16
-    levelTitle.TextXAlignment = Enum.TextXAlignment.Left
-    levelTitle.Parent = levelHeader
+    local levelMasterLabel = Instance.new("TextLabel")
+    levelMasterLabel.Size = UDim2.new(0, 250, 0, 30)
+    levelMasterLabel.Position = UDim2.new(0, 20, 0, 15)
+    levelMasterLabel.BackgroundTransparency = 1
+    levelMasterLabel.Text = "Enable All Level Cases"
+    levelMasterLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    levelMasterLabel.Font = Enum.Font.GothamBold
+    levelMasterLabel.TextSize = 16
+    levelMasterLabel.TextXAlignment = Enum.TextXAlignment.Left
+    levelMasterLabel.Parent = levelMasterCard
     
-    -- Master Level Cases Toggle
-    local levelMasterToggle = Instance.new("TextButton")
-    levelMasterToggle.Name = "LevelMasterToggle"
-    levelMasterToggle.Size = UDim2.new(0, 100, 0, 30)
-    levelMasterToggle.Position = UDim2.new(1, -100, 0, 5)
-    levelMasterToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    levelMasterToggle.Text = "All: OFF"
-    levelMasterToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    levelMasterToggle.Font = Enum.Font.GothamBold
-    levelMasterToggle.TextSize = 14
-    levelMasterToggle.Parent = levelHeader
+    local levelMasterToggle = createToggleSwitch(levelMasterCard, UDim2.new(1, -80, 0, 15), function(state)
+        config.levelCasesEnabled = state
+    end, false)
     
-    local levelMasterCorner = Instance.new("UICorner")
-    levelMasterCorner.CornerRadius = UDim.new(0, 6)
-    levelMasterCorner.Parent = levelMasterToggle
+    local levelInfoLabel = Instance.new("TextLabel")
+    levelInfoLabel.Size = UDim2.new(1, -40, 0, 20)
+    levelInfoLabel.Position = UDim2.new(0, 20, 0, 50)
+    levelInfoLabel.BackgroundTransparency = 1
+    levelInfoLabel.Text = "2 minute cooldown • 6s delay between cases"
+    levelInfoLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
+    levelInfoLabel.Font = Enum.Font.Gotham
+    levelInfoLabel.TextSize = 12
+    levelInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    levelInfoLabel.TextTransparency = 0.3
+    levelInfoLabel.Parent = levelMasterCard
     
-    levelMasterToggle.MouseButton1Click:Connect(function()
-        config.levelCasesEnabled = not config.levelCasesEnabled
-        
-        if config.levelCasesEnabled then
-            levelMasterToggle.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-            levelMasterToggle.Text = "All: ON"
-        else
-            levelMasterToggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            levelMasterToggle.Text = "All: OFF"
-        end
-    end)
+    -- Scroll Frame for Level Cases
+    local levelScrollFrame = Instance.new("ScrollingFrame")
+    levelScrollFrame.Size = UDim2.new(1, 0, 1, -170)
+    levelScrollFrame.Position = UDim2.new(0, 0, 0, 160)
+    levelScrollFrame.BackgroundTransparency = 1
+    levelScrollFrame.BorderSizePixel = 0
+    levelScrollFrame.ScrollBarThickness = 4
+    levelScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 200)
+    levelScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    levelScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    levelScrollFrame.Parent = levelsContent
     
-    -- Level cases grid
-    local levelGrid = Instance.new("Frame")
-    levelGrid.Name = "LevelGrid"
-    levelGrid.Size = UDim2.new(1, -20, 0, 0)
-    levelGrid.Position = UDim2.new(0, 10, 0, 50)
-    levelGrid.BackgroundTransparency = 1
-    levelGrid.AutomaticSize = Enum.AutomaticSize.Y
-    levelGrid.Parent = levelSection
+    local levelGridLayout = Instance.new("UIGridLayout")
+    levelGridLayout.CellSize = UDim2.new(0, 110, 0, 70)
+    levelGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+    levelGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    levelGridLayout.Parent = levelScrollFrame
     
-    local gridLayout = Instance.new("UIGridLayout")
-    gridLayout.CellSize = UDim2.new(0, 100, 0, 35)
-    gridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
-    gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    gridLayout.Parent = levelGrid
-    
-    -- Create level case toggles IN ORDER (10-120)
+    -- Create level case buttons
     for level = 10, 120, 10 do
         local levelName = "LEVEL" .. level
         local levelBtn = Instance.new("TextButton")
         levelBtn.Name = levelName
-        levelBtn.LayoutOrder = level -- This ensures proper ordering
-        levelBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        levelBtn.Text = "L" .. level .. ": OFF"
-        levelBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        levelBtn.Font = Enum.Font.Gotham
-        levelBtn.TextSize = 12
-        levelBtn.Parent = levelGrid
+        levelBtn.LayoutOrder = level
+        levelBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+        levelBtn.BackgroundTransparency = 0.4
+        levelBtn.Text = ""
+        levelBtn.Parent = levelScrollFrame
         
         local levelBtnCorner = Instance.new("UICorner")
-        levelBtnCorner.CornerRadius = UDim.new(0, 6)
+        levelBtnCorner.CornerRadius = UDim.new(0, 12)
         levelBtnCorner.Parent = levelBtn
+        
+        local levelBtnGlow = Instance.new("ImageLabel")
+        levelBtnGlow.Name = "Glow"
+        levelBtnGlow.Size = UDim2.new(1, 15, 1, 15)
+        levelBtnGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+        levelBtnGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+        levelBtnGlow.BackgroundTransparency = 1
+        levelBtnGlow.Image = "rbxassetid://5028857084"
+        levelBtnGlow.ImageColor3 = Color3.fromRGB(255, 200, 0)
+        levelBtnGlow.ImageTransparency = 1
+        levelBtnGlow.ScaleType = Enum.ScaleType.Slice
+        levelBtnGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+        levelBtnGlow.ZIndex = 0
+        levelBtnGlow.Parent = levelBtn
+        
+        local levelNumber = Instance.new("TextLabel")
+        levelNumber.Size = UDim2.new(1, 0, 0, 30)
+        levelNumber.Position = UDim2.new(0, 0, 0, 8)
+        levelNumber.BackgroundTransparency = 1
+        levelNumber.Text = tostring(level)
+        levelNumber.TextColor3 = Color3.fromRGB(150, 150, 200)
+        levelNumber.Font = Enum.Font.GothamBold
+        levelNumber.TextSize = 20
+        levelNumber.Parent = levelBtn
+        
+        local levelLabel = Instance.new("TextLabel")
+        levelLabel.Size = UDim2.new(1, 0, 0, 18)
+        levelLabel.Position = UDim2.new(0, 0, 1, -26)
+        levelLabel.BackgroundTransparency = 1
+        levelLabel.Text = "OFF"
+        levelLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
+        levelLabel.Font = Enum.Font.Gotham
+        levelLabel.TextSize = 11
+        levelLabel.Parent = levelBtn
         
         levelBtn.MouseButton1Click:Connect(function()
             config.levelCases[levelName].enabled = not config.levelCases[levelName].enabled
+            local isEnabled = config.levelCases[levelName].enabled
             
-            if config.levelCases[levelName].enabled then
-                levelBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-                levelBtn.Text = "L" .. level .. ": ON"
+            if isEnabled then
+                levelLabel.Text = "ON"
+                TweenService:Create(levelBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 65)}):Play()
+                TweenService:Create(levelNumber, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 200, 0)}):Play()
+                TweenService:Create(levelLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 200, 0)}):Play()
+                TweenService:Create(levelBtnGlow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
             else
-                levelBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-                levelBtn.Text = "L" .. level .. ": OFF"
+                levelLabel.Text = "OFF"
+                TweenService:Create(levelBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30, 30, 50)}):Play()
+                TweenService:Create(levelNumber, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                TweenService:Create(levelLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                TweenService:Create(levelBtnGlow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
             end
         end)
     end
     
-    -- Update level section size
-    task.wait(0.1) -- Wait for layout to calculate
-    levelSection.Size = UDim2.new(1, 0, 0, 60 + gridLayout.AbsoluteContentSize.Y)
-    
-    -- Parent to PlayerGui or CoreGui
+    -- Parent GUI
     pcall(function()
         screenGui.Parent = CoreGui
     end)
@@ -493,7 +892,17 @@ local function createGUI()
         screenGui.Parent = playerGui
     end
     
-    print("GUI Created Successfully!")
+    -- Entrance animation
+    mainFrame.Size = UDim2.new(0, 0, 0, 0)
+    mainFrame.BackgroundTransparency = 1
+    
+    local entranceTween = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 600, 0, 450),
+        BackgroundTransparency = 0.3
+    })
+    entranceTween:Play()
+    
+    print("Liquid Glass GUI Created Successfully!")
 end
 
 -- Create the GUI
