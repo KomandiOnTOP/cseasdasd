@@ -2,6 +2,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 -- Player
 local player = Players.LocalPlayer
@@ -20,6 +22,22 @@ local config = {
     levelCases = {},
     levelCaseDelay = 6
 }
+
+-- Minimize Button
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 35, 0, 35)
+minimizeBtn.Position = UDim2.new(1, -90, 0, 7.5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+minimizeBtn.BackgroundTransparency = 0.1
+minimizeBtn.Text = "—"
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 20
+minimizeBtn.Parent = titleBar
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 10)
+minimizeCorner.Parent = minimizeBtn
 
 -- Initialize level cases
 local levelIndex = 0
@@ -183,7 +201,40 @@ local function createGUI()
     screenGui.Name = "CaseOpenerGUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
+    local mainFrame = Instance.new("Frame")
+local titleBar = Instance.new("Frame")
+local minimizeBtn = Instance.new("TextButton")
+-- === MINIMIZE LOGIC ===
+local minimized = false
+local originalSize = mainFrame.Size
+
+local function toggleMinimize()
+	minimized = not minimized
+
+	for _, v in ipairs(mainFrame:GetChildren()) do
+		if v ~= titleBar then
+			v.Visible = not minimized
+		end
+	end
+
+	local targetSize = minimized and UDim2.new(0, 700, 0, 50) or originalSize
+
+	TweenService:Create(
+		mainFrame,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{Size = targetSize}
+	):Play()
+end
+
+minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.LeftShift then
+		toggleMinimize()
+	end
+end)
+
     -- Blur Background
     local blurEffect = Instance.new("BlurEffect")
     blurEffect.Size = 15
