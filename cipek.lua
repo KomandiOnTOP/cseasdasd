@@ -176,160 +176,361 @@ end
 
 -- Create GUI with Liquid Glass Effect
 local function createGUI()
-	if CoreGui:FindFirstChild("CaseOpenerGUI") then return end
-
-	-- BLUR TŁA (ZA GUI)
-	local Lighting = game:GetService("Lighting")
-	local blur = Instance.new("BlurEffect")
-	blur.Size = 18
-	blur.Name = "GlassBlurEffect"
-	blur.Parent = Lighting
-
-	-- GUI
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "CaseOpenerGUI"
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.Parent = CoreGui
-
-	-- MAIN GLASS FRAME
-	local main = Instance.new("Frame")
-	main.Size = UDim2.fromScale(0.55, 0.6)
-	main.Position = UDim2.fromScale(0.5, 0.5)
-	main.AnchorPoint = Vector2.new(0.5, 0.5)
-	main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	main.BackgroundTransparency = 0.85
-	main.Parent = gui
-	main.Active = true
-	main.Draggable = true
-
-	Instance.new("UICorner", main).CornerRadius = UDim.new(0, 24)
-
-	-- OSTRE SZKLANE KRAWĘDZIE
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1.5
-	stroke.Color = Color3.fromRGB(255, 255, 255)
-	stroke.Transparency = 0.3
-	stroke.Parent = main
-
-	-- SOFT GLOW
-	local glow = Instance.new("ImageLabel")
-	glow.Image = "rbxassetid://5028857084"
-	glow.Size = UDim2.fromScale(1.05, 1.05)
-	glow.Position = UDim2.fromScale(0.5, 0.5)
-	glow.AnchorPoint = Vector2.new(0.5, 0.5)
-	glow.BackgroundTransparency = 1
-	glow.ImageTransparency = 0.6
-	glow.ImageColor3 = Color3.fromRGB(120, 200, 255)
-	glow.ZIndex = 0
-	glow.Parent = main
-
-	-- TYTUŁ
-	local title = Instance.new("TextLabel")
-	title.Text = "GITY.CC | CASE PARADISE"
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 22
-	title.TextColor3 = Color3.fromRGB(230, 240, 255)
-	title.BackgroundTransparency = 1
-	title.Size = UDim2.new(1, -40, 0, 40)
-	title.Position = UDim2.new(0, 20, 0, 10)
-	title.TextXAlignment = Left
-	title.Parent = main
-
-	-- SIDEBAR (LEWA STRONA)
-	local sidebar = Instance.new("Frame")
-	sidebar.Size = UDim2.new(0, 90, 1, -60)
-	sidebar.Position = UDim2.new(0, 10, 0, 60)
-	sidebar.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	sidebar.BackgroundTransparency = 0.88
-	sidebar.Parent = main
-	Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 18)
-
-	local sidebarStroke = Instance.new("UIStroke", sidebar)
-	sidebarStroke.Color = Color3.fromRGB(255,255,255)
-	sidebarStroke.Transparency = 0.4
-
-	local layout = Instance.new("UIListLayout", sidebar)
-	layout.Padding = UDim.new(0, 12)
-	layout.HorizontalAlignment = Center
-	layout.VerticalAlignment = Center
-
-	-- CONTENT
-	local content = Instance.new("Frame")
-	content.Size = UDim2.new(1, -120, 1, -80)
-	content.Position = UDim2.new(0, 110, 0, 70)
-	content.BackgroundTransparency = 1
-	content.Parent = main
-
-	-- TABS
-	local tabs = {}
-
-	local function createTab(name, iconId)
-		local btn = Instance.new("ImageButton")
-		btn.Size = UDim2.new(0, 60, 0, 60)
-		btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-		btn.BackgroundTransparency = 0.75
-		btn.Image = iconId
-		btn.Parent = sidebar
-
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
-
-		local stroke = Instance.new("UIStroke", btn)
-		stroke.Color = Color3.fromRGB(255,255,255)
-		stroke.Transparency = 0.5
-
-		local page = Instance.new("Frame")
-		page.Size = UDim2.fromScale(1,1)
-		page.BackgroundTransparency = 1
-		page.Visible = false
-		page.Parent = content
-
-		btn.MouseButton1Click:Connect(function()
-			for _,v in pairs(tabs) do
-				v.page.Visible = false
-			end
-			page.Visible = true
-		end)
-
-		tabs[name] = {button = btn, page = page}
-	end
-
-	-- IKONY (REALNE)
-	createTab("MAIN", "rbxassetid://7734053495")
-	createTab("LEVELS", "rbxassetid://7733960981")
-	createTab("INFO", "rbxassetid://7734015324")
-
-	tabs.MAIN.page.Visible = true
-
-	-- INFO CONTENT
-	local infoText = Instance.new("TextLabel")
-	infoText.Text = "author: komandos30"
-	infoText.Font = Enum.Font.Gotham
-	infoText.TextSize = 18
-	infoText.TextColor3 = Color3.fromRGB(220,230,255)
-	infoText.BackgroundTransparency = 1
-	infoText.Size = UDim2.new(1,0,0,40)
-	infoText.Position = UDim2.new(0,0,0,40)
-	infoText.Parent = tabs.INFO.page
-
-	local discordBtn = Instance.new("TextButton")
-	discordBtn.Text = "JOIN DISCORD"
-	discordBtn.Font = Enum.Font.GothamBold
-	discordBtn.TextSize = 16
-	discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
-	discordBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-	discordBtn.Size = UDim2.new(0,220,0,50)
-	discordBtn.Position = UDim2.new(0,0,0,100)
-	discordBtn.Parent = tabs.INFO.page
-	Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0,14)
-
-	discordBtn.MouseButton1Click:Connect(function()
-		setclipboard("https://discord.gg/zp5NKyJqMA")
-	end)
-
-	print("GITY.CC | CASE PARADISE loaded (Liquid Glass)")
-end
-
+    if CoreGui:FindFirstChild("CaseOpenerGUI") or playerGui:FindFirstChild("CaseOpenerGUI") then
+        print("GUI already exists!")
+        return
+    end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CaseOpenerGUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame (Glass Effect)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 600, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+    mainFrame.BackgroundTransparency = 0.3
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 20)
+    mainCorner.Parent = mainFrame
+    
+    -- Glass Blur Effect
+    local blurEffect = Instance.new("ImageLabel")
+    blurEffect.Name = "GlassBlur"
+    blurEffect.Size = UDim2.new(1, 0, 1, 0)
+    blurEffect.BackgroundTransparency = 1
+    blurEffect.Image = "rbxassetid://8992230677"
+    blurEffect.ImageColor3 = Color3.fromRGB(20, 20, 35)
+    blurEffect.ImageTransparency = 0.7
+    blurEffect.ScaleType = Enum.ScaleType.Slice
+    blurEffect.SliceCenter = Rect.new(99, 99, 99, 99)
+    blurEffect.Parent = mainFrame
+    
+    local blurCorner = Instance.new("UICorner")
+    blurCorner.CornerRadius = UDim.new(0, 20)
+    blurCorner.Parent = blurEffect
+    
+    -- Neon Glow Border
+    local glowBorder = Instance.new("ImageLabel")
+    glowBorder.Name = "GlowBorder"
+    glowBorder.Size = UDim2.new(1, 40, 1, 40)
+    glowBorder.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glowBorder.AnchorPoint = Vector2.new(0.5, 0.5)
+    glowBorder.BackgroundTransparency = 1
+    glowBorder.Image = "rbxassetid://5028857084"
+    glowBorder.ImageColor3 = Color3.fromRGB(0, 255, 200)
+    glowBorder.ImageTransparency = 0.5
+    glowBorder.ScaleType = Enum.ScaleType.Slice
+    glowBorder.SliceCenter = Rect.new(24, 24, 276, 276)
+    glowBorder.ZIndex = 0
+    glowBorder.Parent = mainFrame
+    
+    -- Animate glow
+    local glowTween = TweenService:Create(glowBorder, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        ImageColor3 = Color3.fromRGB(100, 200, 255)
+    })
+    glowTween:Play()
+    
+    -- Close Button (Glass style with X symbol)
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseButton"
+    closeBtn.Size = UDim2.new(0, 40, 0, 40)
+    closeBtn.Position = UDim2.new(1, -50, 0, 10)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+    closeBtn.BackgroundTransparency = 0.3
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 20
+    closeBtn.ZIndex = 10
+    closeBtn.Parent = mainFrame
+    
+    local closeBtnCorner = Instance.new("UICorner")
+    closeBtnCorner.CornerRadius = UDim.new(0, 10)
+    closeBtnCorner.Parent = closeBtn
+    
+    local closeBtnGlow = Instance.new("ImageLabel")
+    closeBtnGlow.Size = UDim2.new(1, 20, 1, 20)
+    closeBtnGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    closeBtnGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+    closeBtnGlow.BackgroundTransparency = 1
+    closeBtnGlow.Image = "rbxassetid://5028857084"
+    closeBtnGlow.ImageColor3 = Color3.fromRGB(255, 100, 100)
+    closeBtnGlow.ImageTransparency = 0.7
+    closeBtnGlow.ScaleType = Enum.ScaleType.Slice
+    closeBtnGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+    closeBtnGlow.ZIndex = 9
+    closeBtnGlow.Parent = closeBtn
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1
+        })
+        closeTween:Play()
+        closeTween.Completed:Wait()
+        screenGui:Destroy()
+    end)
+    
+    -- Tab Navigation (Right side)
+    local tabNav = Instance.new("Frame")
+    tabNav.Name = "TabNavigation"
+    tabNav.Size = UDim2.new(0, 120, 1, -20)
+    tabNav.Position = UDim2.new(1, -130, 0, 10)
+    tabNav.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+    tabNav.BackgroundTransparency = 0.4
+    tabNav.BorderSizePixel = 0
+    tabNav.Parent = mainFrame
+    
+    local tabNavCorner = Instance.new("UICorner")
+    tabNavCorner.CornerRadius = UDim.new(0, 15)
+    tabNavCorner.Parent = tabNav
+    
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.Padding = UDim.new(0, 10)
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Parent = tabNav
+    
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingTop = UDim.new(0, 15)
+    tabPadding.PaddingBottom = UDim.new(0, 15)
+    tabPadding.Parent = tabNav
+    
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Size = UDim2.new(1, -150, 1, -20)
+    contentFrame.Position = UDim2.new(0, 10, 0, 10)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
+    
+    -- Main Tab Content
+    local mainContent = Instance.new("Frame")
+    mainContent.Name = "MainContent"
+    mainContent.Size = UDim2.new(1, 0, 1, 0)
+    mainContent.BackgroundTransparency = 1
+    mainContent.Visible = true
+    mainContent.Parent = contentFrame
+    
+    -- Levels Tab Content
+    local levelsContent = Instance.new("Frame")
+    levelsContent.Name = "LevelsContent"
+    levelsContent.Size = UDim2.new(1, 0, 1, 0)
+    levelsContent.BackgroundTransparency = 1
+    levelsContent.Visible = false
+    levelsContent.Parent = contentFrame
+    
+    -- Function to create tab button
+    local function createTabButton(tabName, icon, order, contentToShow)
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Name = tabName .. "Tab"
+        tabBtn.Size = UDim2.new(0, 90, 0, 70)
+        tabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+        tabBtn.BackgroundTransparency = 0.5
+        tabBtn.Text = ""
+        tabBtn.LayoutOrder = order
+        tabBtn.Parent = tabNav
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 12)
+        btnCorner.Parent = tabBtn
+        
+        -- Icon
+        local iconLabel = Instance.new("TextLabel")
+        iconLabel.Size = UDim2.new(1, 0, 0, 30)
+        iconLabel.Position = UDim2.new(0, 0, 0, 8)
+        iconLabel.BackgroundTransparency = 1
+        iconLabel.Text = icon
+        iconLabel.TextColor3 = Color3.fromRGB(150, 150, 200)
+        iconLabel.Font = Enum.Font.GothamBold
+        iconLabel.TextSize = 24
+        iconLabel.Parent = tabBtn
+        
+        -- Label
+        local labelText = Instance.new("TextLabel")
+        labelText.Size = UDim2.new(1, 0, 0, 20)
+        labelText.Position = UDim2.new(0, 0, 1, -28)
+        labelText.BackgroundTransparency = 1
+        labelText.Text = tabName
+        labelText.TextColor3 = Color3.fromRGB(150, 150, 200)
+        labelText.Font = Enum.Font.GothamBold
+        labelText.TextSize = 12
+        labelText.Parent = tabBtn
+        
+        -- Glow effect
+        local btnGlow = Instance.new("ImageLabel")
+        btnGlow.Name = "Glow"
+        btnGlow.Size = UDim2.new(1, 20, 1, 20)
+        btnGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+        btnGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+        btnGlow.BackgroundTransparency = 1
+        btnGlow.Image = "rbxassetid://5028857084"
+        btnGlow.ImageColor3 = Color3.fromRGB(0, 255, 200)
+        btnGlow.ImageTransparency = 1
+        btnGlow.ScaleType = Enum.ScaleType.Slice
+        btnGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+        btnGlow.ZIndex = 0
+        btnGlow.Parent = tabBtn
+        
+        -- Active indicator
+        local activeBar = Instance.new("Frame")
+        activeBar.Name = "ActiveBar"
+        activeBar.Size = UDim2.new(0, 3, 0.7, 0)
+        activeBar.Position = UDim2.new(0, -8, 0.5, 0)
+        activeBar.AnchorPoint = Vector2.new(0, 0.5)
+        activeBar.BackgroundColor3 = Color3.fromRGB(0, 255, 200)
+        activeBar.BorderSizePixel = 0
+        activeBar.Visible = false
+        activeBar.Parent = tabBtn
+        
+        local barCorner = Instance.new("UICorner")
+        barCorner.CornerRadius = UDim.new(1, 0)
+        barCorner.Parent = activeBar
+        
+        -- Set initial active state
+        if config.currentTab == tabName then
+            activeBar.Visible = true
+            iconLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+            labelText.TextColor3 = Color3.fromRGB(0, 255, 200)
+            tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            TweenService:Create(btnGlow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+        end
+        
+        tabBtn.MouseButton1Click:Connect(function()
+            -- Hide all content
+            mainContent.Visible = false
+            levelsContent.Visible = false
+            
+            -- Show selected content
+            contentToShow.Visible = true
+            config.currentTab = tabName
+            
+            -- Update all tab buttons
+            for _, child in pairs(tabNav:GetChildren()) do
+                if child:IsA("TextButton") then
+                    local childIcon = child:FindFirstChildOfClass("TextLabel")
+                    local childLabel = child:FindFirstChild("TextLabel", true)
+                    local childGlow = child:FindFirstChild("Glow")
+                    local childBar = child:FindFirstChild("ActiveBar")
+                    
+                    if child == tabBtn then
+                        -- Active state
+                        if childBar then childBar.Visible = true end
+                        if childIcon then
+                            TweenService:Create(childIcon, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(0, 255, 200)}):Play()
+                        end
+                        if childLabel and childLabel ~= childIcon then
+                            TweenService:Create(childLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(0, 255, 200)}):Play()
+                        end
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}):Play()
+                        if childGlow then
+                            TweenService:Create(childGlow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+                        end
+                    else
+                        -- Inactive state
+                        if childBar then childBar.Visible = false end
+                        if childIcon then
+                            TweenService:Create(childIcon, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                        end
+                        if childLabel and childLabel ~= childIcon then
+                            TweenService:Create(childLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 200)}):Play()
+                        end
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30, 30, 50)}):Play()
+                        if childGlow then
+                            TweenService:Create(childGlow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+                        end
+                    end
+                end
+            end
+        end)
+        
+        return tabBtn
+    end
+    
+    -- Create tabs with symbols
+    createTabButton("MAIN", "◆", 1, mainContent)
+    createTabButton("LEVELS", "▲", 2, levelsContent)
+    
+    -- Function to create modern toggle switch
+    local function createToggleSwitch(parent, position, callback, initialState)
+        local toggleFrame = Instance.new("Frame")
+        toggleFrame.Size = UDim2.new(0, 60, 0, 30)
+        toggleFrame.Position = position
+        toggleFrame.BackgroundColor3 = initialState and Color3.fromRGB(0, 200, 150) or Color3.fromRGB(40, 40, 60)
+        toggleFrame.BackgroundTransparency = 0.3
+        toggleFrame.BorderSizePixel = 0
+        toggleFrame.Parent = parent
+        
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(1, 0)
+        toggleCorner.Parent = toggleFrame
+        
+        -- Glow
+        local toggleGlow = Instance.new("ImageLabel")
+        toggleGlow.Size = UDim2.new(1, 15, 1, 15)
+        toggleGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+        toggleGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+        toggleGlow.BackgroundTransparency = 1
+        toggleGlow.Image = "rbxassetid://5028857084"
+        toggleGlow.ImageColor3 = initialState and Color3.fromRGB(0, 255, 200) or Color3.fromRGB(100, 100, 150)
+        toggleGlow.ImageTransparency = initialState and 0.5 or 0.8
+        toggleGlow.ScaleType = Enum.ScaleType.Slice
+        toggleGlow.SliceCenter = Rect.new(24, 24, 276, 276)
+        toggleGlow.ZIndex = 0
+        toggleGlow.Parent = toggleFrame
+        
+        local knob = Instance.new("Frame")
+        knob.Size = UDim2.new(0, 22, 0, 22)
+        knob.Position = initialState and UDim2.new(1, -26, 0.5, 0) or UDim2.new(0, 4, 0.5, 0)
+        knob.AnchorPoint = Vector2.new(0, 0.5)
+        knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        knob.BorderSizePixel = 0
+        knob.Parent = toggleFrame
+        
+        local knobCorner = Instance.new("UICorner")
+        knobCorner.CornerRadius = UDim.new(1, 0)
+        knobCorner.Parent = knob
+        
+        local toggleBtn = Instance.new("TextButton")
+        toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+        toggleBtn.BackgroundTransparency = 1
+        toggleBtn.Text = ""
+        toggleBtn.Parent = toggleFrame
+        
+        local isOn = initialState
+        
+        toggleBtn.MouseButton1Click:Connect(function()
+            isOn = not isOn
+            
+            local knobPos = isOn and UDim2.new(1, -26, 0.5, 0) or UDim2.new(0, 4, 0.5, 0)
+            local bgColor = isOn and Color3.fromRGB(0, 200, 150) or Color3.fromRGB(40, 40, 60)
+            local glowColor = isOn and Color3.fromRGB(0, 255, 200) or Color3.fromRGB(100, 100, 150)
+            local glowTrans = isOn and 0.5 or 0.8
+            
+            TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Position = knobPos}):Play()
+            TweenService:Create(toggleFrame, TweenInfo.new(0.2), {BackgroundColor3 = bgColor}):Play()
+            TweenService:Create(toggleGlow, TweenInfo.new(0.2), {
+                ImageColor3 = glowColor,
+                ImageTransparency = glowTrans
+            }):Play()
+            
+            if callback then
+                callback(isOn)
+            end
+        end)
+        
+        return toggleFrame
+    end
+    
     -- MAIN TAB CONTENT
     local mainTitle = Instance.new("TextLabel")
     mainTitle.Size = UDim2.new(1, 0, 0, 40)
