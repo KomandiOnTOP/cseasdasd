@@ -2,12 +2,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
 
 --// PLAYER
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
 --// REMOTE
 local remoteFunction = ReplicatedStorage.Remotes.OpenCase
@@ -19,21 +16,21 @@ local config = {
     selectedAutoOpen = "Free",
     autoOpenAmount = 5,
     normalCaseCooldown = 1,
-    levelCases = {},
+    levelCases = {}
 }
 
 --// INIT LEVEL CASES
-local idx = 0
+local index = 0
 for i = 10,120,10 do
     config.levelCases["LEVEL"..i] = {
         enabled = false,
         lastOpened = 0,
         firstOpen = false,
         level = i,
-        initialDelay = idx * 6,
+        initialDelay = index * 6,
         regularCooldown = 120
     }
-    idx += 1
+    index += 1
 end
 
 local scriptStart = 0
@@ -41,33 +38,31 @@ local loopRunning = false
 
 --// OPEN CASE
 local function openCase(caseType, amount)
-    local ok, res = pcall(function()
-        return remoteFunction:InvokeServer(caseType, amount, false, false)
+    pcall(function()
+        remoteFunction:InvokeServer(caseType, amount, false, false)
     end)
-    return ok
 end
 
---// LEVEL CASE CHECK
+--// LEVEL CASE HANDLER
 local function handleLevelCases()
     if not config.levelCasesEnabled then return false end
-
     local now = tick()
     local elapsed = now - scriptStart
-    local toOpen = {}
+    local queue = {}
 
     for name,data in pairs(config.levelCases) do
         if data.enabled then
             if not data.firstOpen and elapsed >= data.initialDelay then
-                table.insert(toOpen,name)
+                table.insert(queue,name)
             elseif data.firstOpen and now - data.lastOpened >= data.regularCooldown then
-                table.insert(toOpen,name)
+                table.insert(queue,name)
             end
         end
     end
 
-    if #toOpen > 0 then
+    if #queue > 0 then
         task.wait(6)
-        for _,lvl in ipairs(toOpen) do
+        for _,lvl in ipairs(queue) do
             openCase(lvl,1)
             config.levelCases[lvl].lastOpened = tick()
             config.levelCases[lvl].firstOpen = true
@@ -83,7 +78,6 @@ end
 local function mainLoop()
     loopRunning = true
     scriptStart = tick()
-
     while config.autoOpenEnabled and loopRunning do
         if not handleLevelCases() then
             openCase(config.selectedAutoOpen, config.autoOpenAmount)
@@ -96,29 +90,38 @@ end
 local function createGUI()
     if CoreGui:FindFirstChild("CaseOpenerGUI") then return end
 
-    local gui = Instance.new("ScreenGui")
+    local gui = Instance.new("ScreenGui", CoreGui)
     gui.Name = "CaseOpenerGUI"
-    gui.Parent = CoreGui
     gui.ResetOnSpawn = false
 
-    local blur = Instance.new("BlurEffect")
-    blur.Size = 18
-    blur.Parent = Lighting
-
-    local main = Instance.new("Frame")
-    main.Size = UDim2.fromOffset(740,470)
+    -- MAIN
+    local main = Instance.new("Frame", gui)
+    main.Size = UDim2.fromOffset(760,480)
     main.Position = UDim2.fromScale(0.5,0.5)
     main.AnchorPoint = Vector2.new(0.5,0.5)
     main.BackgroundColor3 = Color3.fromRGB(20,20,28)
     main.BackgroundTransparency = 0.25
-    main.BorderSizePixel = 0
     main.Active = true
     main.Draggable = true
-    main.Parent = gui
-    Instance.new("UICorner",main).CornerRadius = UDim.new(0,22)
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0,22)
+
+    -- GLASS BLUR (UI ONLY)
+    local blur = Instance.new("ImageLabel", main)
+    blur.Size = UDim2.fromScale(1,1)
+    blur.BackgroundTransparency = 1
+    blur.Image = "rbxassetid://8992230677"
+    blur.ImageTransparency = 0.65
+    blur.ScaleType = Enum.ScaleType.Slice
+    blur.SliceCenter = Rect.new(99,99,99,99)
+    Instance.new("UICorner", blur).CornerRadius = UDim.new(0,22)
+
+    local contentRoot = Instance.new("Frame", main)
+    contentRoot.Size = UDim2.fromScale(1,1)
+    contentRoot.BackgroundTransparency = 1
+    contentRoot.ZIndex = 2
 
     -- TITLE
-    local title = Instance.new("TextLabel",main)
+    local title = Instance.new("TextLabel", contentRoot)
     title.Size = UDim2.new(1,-20,0,40)
     title.Position = UDim2.fromOffset(20,10)
     title.BackgroundTransparency = 1
@@ -128,69 +131,80 @@ local function createGUI()
     title.TextXAlignment = Left
     title.TextColor3 = Color3.new(1,1,1)
 
-    -- SIDEBAR
-    local sidebar = Instance.new("Frame",main)
-    sidebar.Size = UDim2.fromOffset(90,360)
+    -- SIDEBAR (CATEGORIES)
+    local sidebar = Instance.new("Frame", contentRoot)
+    sidebar.Size = UDim2.fromOffset(150,360)
     sidebar.Position = UDim2.fromOffset(20,70)
-    sidebar.BackgroundColor3 = Color3.fromRGB(25,25,35)
-    sidebar.BackgroundTransparency = 0.3
-    Instance.new("UICorner",sidebar).CornerRadius = UDim.new(0,18)
+    sidebar.BackgroundColor3 = Color3.fromRGB(30,30,40)
+    sidebar.BackgroundTransparency = 0.35
+    Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0,18)
 
-    local list = Instance.new("UIListLayout",sidebar)
-    list.Padding = UDim.new(0,12)
-    list.HorizontalAlignment = Center
-    list.VerticalAlignment = Center
+    local sideLayout = Instance.new("UIListLayout", sidebar)
+    sideLayout.Padding = UDim.new(0,10)
+    sideLayout.HorizontalAlignment = Center
+    sideLayout.VerticalAlignment = Top
 
-    -- CONTENT
-    local content = Instance.new("Frame",main)
-    content.Size = UDim2.new(1,-130,1,-90)
-    content.Position = UDim2.fromOffset(120,70)
+    -- CONTENT AREA
+    local content = Instance.new("Frame", contentRoot)
+    content.Size = UDim2.new(1,-190,1,-90)
+    content.Position = UDim2.fromOffset(180,70)
     content.BackgroundTransparency = 1
 
     local pages = {}
-    local function page()
-        local f = Instance.new("Frame",content)
+    local function newPage()
+        local f = Instance.new("Frame", content)
         f.Size = UDim2.fromScale(1,1)
-        f.BackgroundTransparency = 1
         f.Visible = false
+        f.BackgroundTransparency = 1
         return f
     end
 
-    pages.MAIN = page()
-    pages.LEVELS = page()
-    pages.INFO = page()
+    pages.MAIN = newPage()
+    pages.LEVELS = newPage()
+    pages.INFO = newPage()
     pages.MAIN.Visible = true
 
-    local function tab(icon,page)
-        local b = Instance.new("ImageButton",sidebar)
-        b.Size = UDim2.fromOffset(56,56)
-        b.BackgroundColor3 = Color3.fromRGB(40,40,55)
-        b.BackgroundTransparency = 0.25
-        b.Image = icon
-        Instance.new("UICorner",b).CornerRadius = UDim.new(1,0)
+    -- CATEGORY BUTTON
+    local function categoryButton(text, icon, page)
+        local btn = Instance.new("TextButton", sidebar)
+        btn.Size = UDim2.new(1,-20,0,44)
+        btn.Text = "  "..text
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.TextXAlignment = Left
+        btn.BackgroundColor3 = Color3.fromRGB(45,45,60)
+        btn.BackgroundTransparency = 0.2
+        btn.TextColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
 
-        b.MouseButton1Click:Connect(function()
+        local img = Instance.new("ImageLabel", btn)
+        img.Size = UDim2.fromOffset(20,20)
+        img.Position = UDim2.fromOffset(12,12)
+        img.BackgroundTransparency = 1
+        img.Image = icon
+
+        btn.MouseButton1Click:Connect(function()
             for _,p in pairs(pages) do p.Visible = false end
             page.Visible = true
         end)
     end
 
-    tab("rbxassetid://7734053495", pages.MAIN)
-    tab("rbxassetid://7733960981", pages.LEVELS)
-    tab("rbxassetid://7734056608", pages.INFO)
+    categoryButton("MAIN",   "rbxassetid://7734053495", pages.MAIN)
+    categoryButton("LEVELS", "rbxassetid://7733960981", pages.LEVELS)
+    categoryButton("INFO",   "rbxassetid://7734056608", pages.INFO)
 
     -- MAIN CONTENT
-    local toggle = Instance.new("TextButton",pages.MAIN)
-    toggle.Size = UDim2.fromOffset(240,44)
-    toggle.Position = UDim2.fromOffset(20,20)
-    toggle.Text = "AUTO OPEN"
-    toggle.Font = Enum.Font.GothamBold
-    toggle.TextSize = 14
-    toggle.BackgroundColor3 = Color3.fromRGB(0,200,150)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner",toggle).CornerRadius = UDim.new(0,12)
+    local autoBtn = Instance.new("TextButton", pages.MAIN)
+    autoBtn.Size = UDim2.fromOffset(260,44)
+    autoBtn.Position = UDim2.fromOffset(20,20)
+    autoBtn.Text = "AUTO OPEN"
+    autoBtn.Font = Enum.Font.GothamBold
+    autoBtn.TextSize = 14
+    autoBtn.BackgroundColor3 = Color3.fromRGB(0,200,150)
+    autoBtn.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0,12)
 
-    toggle.MouseButton1Click:Connect(function()
+    autoBtn.MouseButton1Click:Connect(function()
         config.autoOpenEnabled = not config.autoOpenEnabled
         if config.autoOpenEnabled then
             task.spawn(mainLoop)
@@ -199,9 +213,30 @@ local function createGUI()
         end
     end)
 
-    -- INFO
-    local info = Instance.new("TextLabel",pages.INFO)
-    info.Size = UDim2.fromOffset(300,60)
+    -- LEVELS CONTENT
+    local lvlLayout = Instance.new("UIListLayout", pages.LEVELS)
+    lvlLayout.Padding = UDim.new(0,8)
+
+    for name,data in pairs(config.levelCases) do
+        local b = Instance.new("TextButton", pages.LEVELS)
+        b.Size = UDim2.new(0,260,0,38)
+        b.Text = name
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 13
+        b.BackgroundColor3 = Color3.fromRGB(60,60,80)
+        b.TextColor3 = Color3.new(1,1,1)
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+
+        b.MouseButton1Click:Connect(function()
+            data.enabled = not data.enabled
+            config.levelCasesEnabled = true
+            b.BackgroundColor3 = data.enabled and Color3.fromRGB(0,170,120) or Color3.fromRGB(60,60,80)
+        end)
+    end
+
+    -- INFO CONTENT
+    local info = Instance.new("TextLabel", pages.INFO)
+    info.Size = UDim2.fromOffset(300,40)
     info.Position = UDim2.fromOffset(20,20)
     info.BackgroundTransparency = 1
     info.Text = "author: komandos30"
@@ -210,21 +245,8 @@ local function createGUI()
     info.TextColor3 = Color3.fromRGB(220,220,220)
     info.TextXAlignment = Left
 
-    local discord = Instance.new("TextButton",pages.INFO)
+    local discord = Instance.new("TextButton", pages.INFO)
     discord.Size = UDim2.fromOffset(260,44)
-    discord.Position = UDim2.fromOffset(20,90)
+    discord.Position = UDim2.fromOffset(20,80)
     discord.Text = "JOIN DISCORD"
     discord.Font = Enum.Font.GothamBold
-    discord.TextSize = 14
-    discord.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    discord.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner",discord).CornerRadius = UDim.new(0,12)
-
-    discord.MouseButton1Click:Connect(function()
-        pcall(function()
-            setclipboard("https://discord.gg/zp5NKyJqMA")
-        end)
-    end)
-end
-
-createGUI()
