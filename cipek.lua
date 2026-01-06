@@ -23,18 +23,6 @@ local config = {
     levelCaseDelay = 6
 }
 
--- Minimize Button
-local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 35, 0, 35)
-minimizeBtn.Position = UDim2.new(1, -90, 0, 7.5)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
-minimizeBtn.BackgroundTransparency = 0.1
-minimizeBtn.Text = "—"
-minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 20
-minimizeBtn.Parent = titleBar
-
 local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0, 10)
 minimizeCorner.Parent = minimizeBtn
@@ -201,39 +189,6 @@ local function createGUI()
     screenGui.Name = "CaseOpenerGUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    local mainFrame = Instance.new("Frame")
-local titleBar = Instance.new("Frame")
-local minimizeBtn = Instance.new("TextButton")
--- === MINIMIZE LOGIC ===
-local minimized = false
-local originalSize = mainFrame.Size
-
-local function toggleMinimize()
-	minimized = not minimized
-
-	for _, v in ipairs(mainFrame:GetChildren()) do
-		if v ~= titleBar then
-			v.Visible = not minimized
-		end
-	end
-
-	local targetSize = minimized and UDim2.new(0, 700, 0, 50) or originalSize
-
-	TweenService:Create(
-		mainFrame,
-		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{Size = targetSize}
-	):Play()
-end
-
-minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.LeftShift then
-		toggleMinimize()
-	end
-end)
 
     -- Blur Background
     local blurEffect = Instance.new("BlurEffect")
@@ -982,4 +937,139 @@ end)
     print("GITY.CC | CASE PARADISE - GUI Created Successfully!")
 end
 
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local function createGUI()
+
+	-- Prevent duplicate GUI
+	if CoreGui:FindFirstChild("CaseOpenerGUI") or playerGui:FindFirstChild("CaseOpenerGUI") then
+		return
+	end
+
+	-- ScreenGui
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "CaseOpenerGUI"
+	screenGui.ResetOnSpawn = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.Parent = CoreGui
+
+	-- Main Frame
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Size = UDim2.new(0, 700, 0, 500)
+	mainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Active = true
+	mainFrame.Draggable = true
+	mainFrame.Parent = screenGui
+
+	local mainCorner = Instance.new("UICorner", mainFrame)
+	mainCorner.CornerRadius = UDim.new(0, 16)
+
+	-- Title Bar
+	local titleBar = Instance.new("Frame")
+	titleBar.Size = UDim2.new(1, 0, 0, 50)
+	titleBar.BackgroundColor3 = Color3.fromRGB(40, 35, 70)
+	titleBar.BorderSizePixel = 0
+	titleBar.Parent = mainFrame
+
+	local titleCorner = Instance.new("UICorner", titleBar)
+	titleCorner.CornerRadius = UDim.new(0, 16)
+
+	-- Title Text
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -120, 1, 0)
+	title.Position = UDim2.new(0, 15, 0, 0)
+	title.BackgroundTransparency = 1
+	title.Text = "CASE OPENER"
+	title.TextColor3 = Color3.new(1,1,1)
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 18
+	title.TextXAlignment = Left
+	title.Parent = titleBar
+
+	-- Close Button
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Size = UDim2.new(0, 35, 0, 35)
+	closeBtn.Position = UDim2.new(1, -45, 0, 7)
+	closeBtn.Text = "✕"
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.TextSize = 18
+	closeBtn.TextColor3 = Color3.new(1,1,1)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 80)
+	closeBtn.Parent = titleBar
+
+	Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+
+	closeBtn.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+	end)
+
+	-- Minimize Button
+	local minimizeBtn = Instance.new("TextButton")
+	minimizeBtn.Size = UDim2.new(0, 35, 0, 35)
+	minimizeBtn.Position = UDim2.new(1, -90, 0, 7)
+	minimizeBtn.Text = "—"
+	minimizeBtn.Font = Enum.Font.GothamBold
+	minimizeBtn.TextSize = 20
+	minimizeBtn.TextColor3 = Color3.new(1,1,1)
+	minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 90, 160)
+	minimizeBtn.Parent = titleBar
+
+	Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 8)
+
+	-- Content (example)
+	local content = Instance.new("Frame")
+	content.Size = UDim2.new(1, -20, 1, -70)
+	content.Position = UDim2.new(0, 10, 0, 60)
+	content.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+	content.Parent = mainFrame
+
+	Instance.new("UICorner", content).CornerRadius = UDim.new(0, 12)
+
+	-- =====================
+	-- MINIMIZE LOGIC
+	-- =====================
+	local minimized = false
+	local originalSize = mainFrame.Size
+
+	local function toggleMinimize()
+		minimized = not minimized
+
+		for _, v in ipairs(mainFrame:GetChildren()) do
+			if v ~= titleBar then
+				v.Visible = not minimized
+			end
+		end
+
+		local targetSize = minimized
+			and UDim2.new(0, originalSize.X.Offset, 0, 50)
+			or originalSize
+
+		minimizeBtn.Text = minimized and "+" or "—"
+
+		TweenService:Create(
+			mainFrame,
+			TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{Size = targetSize}
+		):Play()
+	end
+
+	minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
+
+	UserInputService.InputBegan:Connect(function(input, gpe)
+		if gpe then return end
+		if input.KeyCode == Enum.KeyCode.LeftShift then
+			toggleMinimize()
+		end
+	end)
+end
+
 createGUI()
+
