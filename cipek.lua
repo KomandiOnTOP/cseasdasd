@@ -250,3 +250,16 @@ local function createGUI()
     discord.Position = UDim2.fromOffset(20,80)
     discord.Text = "JOIN DISCORD"
     discord.Font = Enum.Font.GothamBold
+    discord.TextSize = 14
+    discord.BackgroundColor3 = Color3.fromRGB(88,101,242)
+    discord.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", discord).CornerRadius = UDim.new(0,12)
+
+    discord.MouseButton1Click:Connect(function()
+        pcall(function()
+            setclipboard("https://discord.gg/zp5NKyJqMA")
+        end)
+    end)
+end
+
+createGUI()
