@@ -189,11 +189,6 @@ local function createGUI()
     screenGui.Name = "CaseOpenerGUI"
     screenGui.ResetOnSpawn = false
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    -- Blur Background
-    local blurEffect = Instance.new("BlurEffect")
-    blurEffect.Size = 15
-    blurEffect.Parent = game.Lighting
     
     -- Main Container with gradient
     local mainFrame = Instance.new("Frame")
